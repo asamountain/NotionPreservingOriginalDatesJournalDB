@@ -9,118 +9,47 @@ A Python script that copies the "Created Time" from Notion journal pages to a cu
 - Handles pagination automatically (processes all pages, not just the first 100)
 - Shows progress as it updates each page
 
-## 📊 How It Works - Visual Flow
+## 📊 How It Works
 
 ```mermaid
-flowchart TD
-    Start([Start Program]) --> CheckAPI{API Key<br/>Set?}
-    CheckAPI -->|No| Error1[❌ Exit: API Key Required]
-    CheckAPI -->|Yes| Init[Initialize Notion Client]
-    
-    Init --> Query[Query Data Source]
-    Query --> Fetch[Fetch 100 Pages]
-    Fetch --> AddPages[Add to Pages List]
-    
-    AddPages --> CheckMore{More Pages<br/>Available?}
-    CheckMore -->|Yes| UpdateCursor[Update Cursor]
-    UpdateCursor --> Fetch
-    CheckMore -->|No| Summary[📊 Show Total Count]
-    
-    Summary --> CheckEmpty{Pages<br/>Found?}
-    CheckEmpty -->|No| Error2[⚠️ Exit: No Pages]
-    CheckEmpty -->|Yes| StartUpdate[Begin Updates]
-    
-    StartUpdate --> Loop{For Each<br/>Page}
-    Loop --> GetTime[Get Created Time]
-    GetTime --> Update[Update Publication Date]
-    
-    Update --> Success{Update<br/>Success?}
-    Success -->|Yes| Count1[✅ Success Count++]
-    Success -->|No| Count2[❌ Log Error]
-    
-    Count1 --> Progress[Show Progress]
-    Count2 --> Progress
-    Progress --> Loop
-    
-    Loop -->|All Done| Final[📊 Show Final Stats]
-    Final --> End([✅ Complete])
-    
-    Error1 --> End
-    Error2 --> End
-    
-    style Start fill:#90EE90
-    style End fill:#90EE90
-    style Error1 fill:#FFB6C6
-    style Error2 fill:#FFB6C6
-    style Final fill:#87CEEB
-    style Summary fill:#87CEEB
+flowchart LR
+    Start([Start]) --> Init[Initialize<br/>Notion Client]
+    Init --> Fetch[Fetch Pages<br/>from Database]
+    Fetch --> Loop{For Each<br/>Page}
+    Loop --> Extract[Get Created Time]
+    Extract --> Update[Update Publication Date<br/>Property]
+    Update --> Next{More<br/>Pages?}
+    Next -->|Yes| Loop
+    Next -->|No| Done([Complete])
 ```
 
-## 🔄 Program Execution Sequence
+## 🔄 Process Flow
 
 ```mermaid
 sequenceDiagram
-    participant User
     participant Script
     participant Notion API
     participant Database
     
-    User->>Script: Run script with API key
-    Script->>Script: Validate API key exists
+    Script->>Notion API: Connect with API key
     
-    Script->>Notion API: Initialize connection
-    Notion API-->>Script: Connection established
-    
-    rect rgb(200, 230, 255)
-        Note over Script,Database: Pagination Loop
-        loop Until all pages fetched
-            Script->>Notion API: Query data source (100 pages)
-            Notion API->>Database: Fetch pages batch
-            Database-->>Notion API: Return page batch
-            Notion API-->>Script: Page data + cursor
-            Script->>Script: Add pages to list
-        end
+    Note over Script,Database: Step 1: Fetch All Pages
+    loop Pagination (100 pages per batch)
+        Script->>Notion API: Query data source
+        Notion API->>Database: Fetch pages
+        Database-->>Script: Return pages + cursor
     end
     
-    Script->>User: Display total pages found
-    
-    rect rgb(200, 255, 200)
-        Note over Script,Database: Update Loop
-        loop For each page
-            Script->>Script: Extract created_time
-            Script->>Notion API: Update Publication Date
-            Notion API->>Database: Write to page property
-            Database-->>Notion API: Confirm update
-            Notion API-->>Script: Success/Error
-            Script->>User: Show progress [N/Total] ✅
-        end
+    Note over Script,Database: Step 2: Update Each Page
+    loop For each page
+        Script->>Script: Extract created_time
+        Script->>Notion API: Update Publication Date
+        Notion API->>Database: Write property
+        Database-->>Script: Confirm
+        Script->>Script: Show progress [N/Total]
     end
     
-    Script->>User: ✅ Complete! Final statistics
-```
-
-## 📈 Timeline Example
-
-```mermaid
-gantt
-    title Notion Journal Date Preservation Process
-    dateFormat  ss
-    section Setup
-    Validate API Key           :done, setup1, 00, 1s
-    Initialize Client          :done, setup2, after setup1, 1s
-    
-    section Fetching
-    Query Batch 1 (100 pages)  :active, fetch1, after setup2, 2s
-    Query Batch 2 (100 pages)  :active, fetch2, after fetch1, 2s
-    Query Batch 3 (50 pages)   :active, fetch3, after fetch2, 1s
-    
-    section Processing
-    Update Pages 1-100         :update1, after fetch3, 10s
-    Update Pages 101-200       :update2, after update1, 10s
-    Update Pages 201-250       :update3, after update2, 5s
-    
-    section Complete
-    Show Statistics            :done, final, after update3, 1s
+    Script->>Script: Display final statistics
 ```
 
 ## 📋 Prerequisites
